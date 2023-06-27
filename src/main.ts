@@ -1,75 +1,39 @@
-import { invoke } from '@tauri-apps/api/tauri'
-import { save, open } from '@tauri-apps/api/dialog';
+import { load_file, save_file } from './graph_file';
+import { listen } from '@tauri-apps/api/event'
+import { register } from '@tauri-apps/api/globalShortcut';
+import { setupCalculator } from './calculator';
 
-const re = /\\backslash /g;
+let Calc = setupCalculator();
 
-var elt = document.getElementById('calculator');
+await register('CommandOrControl+s', () => {
+	save_file(Calc);
+})
 
-// @ts-ignore
-var calculator = Desmos.GraphingCalculator(elt);
+await register('CommandOrControl+o', () => {
+	load_file(Calc);
+})
 
-function latexify() {
-    let id = calculator.selectedExpressionId;
-    let exprs = calculator.getExpressions();
+await listen('file_management', (event) => {
+	switch (event.payload) {
+		case 'save': 
+			save_file(Calc);
+			break;
+		case 'load': 
+			load_file(Calc);
+			break;
+	}
+})
 
-    for (let i = 0; i < exprs.length; i++) {
-        let expr = exprs[i];
+const autocmds = 'alpha beta sqrt theta Theta phi Phi pi Pi tau nthroot cbrt sum prod int ans percent infinity infty gamma Gamma delta Delta epsilon epsiv zeta eta kappa lambda Lambda mu xi Xi rho sigma Sigma chi Chi psi Psi omega Omega digamma iota nu upsilon Upsilon square mid parallel nparallel perp times div approx'.split(" ");
 
-        if (expr.id == id) {
-            calculator.setExpression({
-                id: id,
-                latex: expr.latex.replaceAll(re, "\\")
-            });
-        }
-    }
-}
-
-async function load_file() {
-    const filePath = await open({
-        filters: [{
-            name: 'DesmosFile',
-            extensions: ['desmos']
-        }]
-    });
-
-    if (filePath) {
-        await invoke('load_file', {
-            path: filePath
-        }).then((state) => {
-            if (typeof (state) === 'string') {
-                console.log(JSON.parse(state));
-                calculator.setState(JSON.parse(state));
-            }
-        }).catch((error) => console.error(error));
-    }
-}
-
-async function save_file() {
-    const filePath = await save({
-        filters: [{
-            name: 'DesmosFile',
-            extensions: ['desmos']
-        }]
-    });
-
-    if (filePath) {
-        await invoke('save_file', {
-            path: filePath,
-            state: JSON.stringify(calculator.getState())
-        }).catch((error) => console.error(error));
-    }
-}
-
-document.addEventListener('keydown', (event) => {
-    if (event.ctrlKey) {
-        latexify();
-    }
-
-    if (event.code == 'F5') {
-        save_file();
-    }
-
-    if (event.code == 'F6') {
-        load_file();
-    }
-});
+// Ideally not have to do this on a timer
+setInterval(() => {
+  const fields = document.querySelectorAll('.dcg-mq-editable-field')
+  fields.forEach(field => {
+	// @ts-ignore
+    const opt = field._mqMathFieldInstance.__controller.root.cursor.options;
+	for (let i = 0; i < autocmds.length; ++i) {
+    	opt.autoCommands[autocmds[i]] = 1;
+	}
+  })
+}, 100)
