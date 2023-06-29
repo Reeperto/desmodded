@@ -50,15 +50,10 @@ fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![save_file, load_file])
         .menu(menu)
-        .setup(|app| {
-            app.get_window("main")
-                .unwrap()
-                .menu_handle()
-                .show()
-                .unwrap();
-
-            Ok(())
-        })
+        // .setup(|app| {
+        //     let main = app.get_window("main").unwrap();
+        //     Ok(())
+        // })
         .on_menu_event(|event| match event.menu_item_id() {
             "save_graph" => {
                 let _ = event.window().emit("file_management", "save");

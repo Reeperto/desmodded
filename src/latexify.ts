@@ -8,7 +8,7 @@ function latexify(calculator: any) {
         if (expr.id == id) {
             calculator.setExpression({
                 id: id,
-                latex: expr.latex.replaceAll(re, "\\")
+                latex: expr.latex.replaceAll(/\\backslash /g, "\\")
             });
         }
     }
